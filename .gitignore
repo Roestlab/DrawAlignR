@@ -11,3 +11,11 @@ inst/extdata/pqp/
 #inst/extdata/Spyogenes/*
 inst/extdata/Synthetic_Dilution_Phosphoproteomics/*
 inst/extdata/Synthetic_Dilution_Phosphoproteomics_Large_Files/*
+# Ignore Old Scripts
+R/plot_chrom_reference.R
+R/plot_aligned.R
+R/getXIC.r
+R/getPepLibData.R
+R/getChromatogramDataPoints.R
+R/Phosphoproteomics_Dilution_Dataset_filters.R
+R/delete_buttons.R
