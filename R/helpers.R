@@ -40,6 +40,20 @@ getListObj <- function(x, name) {
   }
 }
 
+#' Check is SCORE_IPF is in database
+#' @param oswFile A character vector pointing to path of osw file
+#' @return returns a logical value if SCORE_IPF is present or not
+Score_IPF_Present <- function( oswFile ){
+  db <- DBI::dbConnect( RSQLite::SQLite(), oswFile )
+  if ( DBI::dbExistsTable( db, "SCORE_IPF" ) ){
+    use_ipf_score <- TRUE
+  } else {
+    use_ipf_score <- FALSE
+  }
+  DBI::dbDisconnect( db )
+  return( use_ipf_score )
+}
+
 testAlignObj <- function(analyteInGroupLabel = FALSE){
   if(analyteInGroupLabel){
     AlignObj <- new("AffineAlignObjLight",

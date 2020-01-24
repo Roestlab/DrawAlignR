@@ -1,0 +1,3 @@
+server_help_description_text <- function( input, output, session ){
+  addPopover(session = session, id = "WorkingDirectoryInput_help", title = "Use a Working Directory?", content = paste0("<p>You can use a general working directory that contains sub-folders osw, pqp, mzml and sqmass with respective files.</p><p>Or alternatively if you toggle the button off then you can select files individually using separate input buttons.</p>"), trigger = 'click') 
+}

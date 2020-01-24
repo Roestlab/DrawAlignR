@@ -16,6 +16,8 @@ getmzPntrs <- function( input, global  ){
   tictoc::tic('Pre-Loading mzML Chromatogram Files onto disk')
   mzPntrs <- list()
   for ( chromatogram_input_index_num in seq(1, length(filenames$runs)) ){
+    tryCatch(
+      expr = {
     run <- rownames(filenames)[ chromatogram_input_index_num ]
     current_filename <- filenames$runs[ chromatogram_input_index_num ]
     message(sprintf("Cacheing mzML for %s of %s runs", run, length(filenames$runs)))
@@ -29,6 +31,11 @@ getmzPntrs <- function( input, global  ){
     mzPntrs[[run]] <- list()
     mzPntrs[[run]]$mz <- mz
     mzPntrs[[run]]$chromHead <- chromHead
+      },
+    error = function(e){
+      message(sprintf("[getmzPntrs] There was an issue cacheing %s, skipping...: %s\n", current_filename, e$message))
+    }
+    ) # End tryCatch
   }
   tictoc::toc()
   

@@ -1,11 +1,11 @@
 citHeader("To cite DrawAlignR in publications use:")
 
 citEntry(
-  entry    = "Unpublished",
-  title    = "DrawAlignR",
-  author   = "Arshia Mahmoodi",
-  year     = "2019",
-  note     = "Unpublished"
+  entry    = "Published on bioRxiv",
+  title    = "DrawAlignR: An interactive tool for across run chromatogram alignment visualization",
+  author   = "Gupta, S., Sing, J., Mahmoodi, A., & Röst, H",
+  year     = "2020",
+  note     = "Published on bioRxiv"
   textVersion = paste(
   )
 )

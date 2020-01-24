@@ -41,15 +41,20 @@ chromatogramIdAsInteger <- function(chromatogramHeader){
 #' @return Invisible NULL
 #' @seealso \code{\link{getOswFiles}}
 mergeOswAnalytes_ChromHeader <- function(oswAnalytes, chromHead, analyteFDR =  1.00, runType = "DIA_proteomics"){
-  # TODO: Make sure that transition_id has same order across runs. IMO should be specified in query.
-  assign("oswAnalytes", dplyr::left_join(oswAnalytes, chromHead,
-                                  by = c("transition_id" = "chromatogramId")) %>%
-    dplyr::group_by(transition_group_id, peak_group_rank) %>%
-    dplyr::mutate(transition_ids = paste0(transition_id, collapse = ","),
-                  chromatogramIndex = paste0(chromatogramIndex, collapse = ",")) %>%
-    dplyr::ungroup() %>% dplyr::select(-transition_id) %>% dplyr::distinct(),
-    envir = parent.frame(n = 1))
-  invisible(NULL)
+  tryCatch( expr = {
+    # TODO: Make sure that transition_id has same order across runs. IMO should be specified in query.
+    assign("oswAnalytes", dplyr::left_join(oswAnalytes, chromHead,
+                                           by = c("transition_id" = "chromatogramId")) %>%
+             dplyr::group_by(transition_group_id, peak_group_rank) %>%
+             dplyr::mutate(transition_ids = paste0(transition_id, collapse = ","),
+                           chromatogramIndex = paste0(chromatogramIndex, collapse = ",")) %>%
+             dplyr::ungroup() %>% dplyr::select(-transition_id) %>% dplyr::distinct(),
+           envir = parent.frame(n = 1))
+    invisible(NULL)
+  }, error = function(e){
+    message( sprintf("[DrawAlignR::merge_osw_mzml::mergeOswAnalytes_ChromHeader: There was an error that occured during function call: $s\n", e$message))
+  })
+  
 }
 
 #' Get list of peptides and their chromatogram indices.

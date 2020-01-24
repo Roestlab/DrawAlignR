@@ -10,8 +10,10 @@ plotAlignedAnalytes(
   plotType = "All",
   DrawAlignR = FALSE,
   annotatePeak = FALSE,
+  annotateOrgPeak = FALSE,
   saveFigs = FALSE,
   global = NULL,
+  values = NULL,
   input = NULL
 )
 }

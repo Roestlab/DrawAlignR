@@ -1,15 +1,17 @@
 Package: DrawAlignR
 Type: Package
 Title: Visualizes Aligned Ms2 Chromatograms
-Version: 0.1.0
-Authors@R: c( person("Arshia", "Mahmoodi", email = "arshia.mahmoodi@mail.utoronto.ca", role = c("aut")),
-              person( "Justin", "Sing", email = "justincsing@gmail.com", role = c("cre") )
+Version: 1.0.0
+Authors@R: c( person( "Justin", "Sing", email = "justincsing@gmail.com", role = c("cre") ),
+              person("Arshia", "Mahmoodi", email = "arshia.mahmoodi@mail.utoronto.ca", role = c("aut"))
             )
-Maintainers: Arshia Mahmoodi <arshia.mahmoodi@mail.utoronto.ca>
+Maintainers: c(  person( "Justin", "Sing", email = "justincsing@gmail.com", role = c("cre") ),
+                 person("Arshia", "Mahmoodi", email = "arshia.mahmoodi@mail.utoronto.ca", role = c("aut"))
+              )
 Description: A package for the visualization of aligned Ms2 chromatograms. The main intended use of this package is
              to be used downstream of a chromatogram alignment tool for ms2 chromatograms, to draw and visualize
              the newly generated aligned chromatograms.
-Depends: R (>= 3.6.1)
+Depends: R (>= 3.0)
 Imports: shiny,
           shinyjs,
           shinyFiles,

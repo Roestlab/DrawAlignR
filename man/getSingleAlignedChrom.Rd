@@ -4,7 +4,7 @@
 \alias{getSingleAlignedChrom}
 \title{Plot an aligned XIC-group.}
 \usage{
-getSingleAlignedChrom(XIC_group, idx)
+getSingleAlignedChrom(XIC_group, idx, t.ref)
 }
 \arguments{
 \item{XIC_group}{(list) It is a list of dataframe which has two columns. First column is for time
