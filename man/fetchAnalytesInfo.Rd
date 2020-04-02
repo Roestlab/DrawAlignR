@@ -12,7 +12,8 @@ fetchAnalytesInfo(
   filename,
   runType,
   analyteInGroupLabel = FALSE,
-  identifying = FALSE
+  identifying = FALSE,
+  identifying.transitionPEPfilter = 0.6
 )
 }
 \arguments{
@@ -62,6 +63,7 @@ analytesInfo <- fetchAnalytesInfo(oswName, maxFdrQuery = 0.05, oswMerged = TRUE,
  analytes = c("IHFLSPVRPFTLTPGDEEESFIQLITPVR_3"), filename = filenames$filename[3],
   runType = "DIA_proteomics", analyteInGroupLabel = FALSE)
 }
+
 }
 \seealso{
 \code{\link{getRunNames}}

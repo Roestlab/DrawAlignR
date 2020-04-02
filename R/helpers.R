@@ -1,10 +1,204 @@
-#' Convert Text Input separated by a comma to a numeric vector
-#' @param text A character vector containing numbers separated by a comma
-#' @return A numeric vector
-text2numericInput <- function(text) {
-  text <- gsub(" ", "", text)
-  split <- strsplit(text, ",", fixed = FALSE)[[1]]
-  as.numeric(split)
+## quiets concerns of R CMD check re: the .'s that appear in pipelines
+if(getRversion() >= "2.15.1")  utils::globalVariables(c("."))
+
+
+#' Get string information for Maintainer
+#' @param email A character vector for email address to contact maintainer
+#' @param github A character vector for github repository to submit issue/feature requests
+#' @return A chracter vector with Maintainer information
+#' @export
+getMaintainer <- function(email='justincsing@gmail.com', github='https://github.com/singjc/DrawAlignR'){
+  sprintf('%s (%s)\n', email, utils::URLdecode(github))
+}
+
+#' Get string of function call
+#' @param func_args_list A list object containing information of arguments to a function call
+#' @return A chracter vector representin function call
+#' @export
+getFunctionCallArgs <- function( func_args_list ){
+  
+  function_name <- as.character( func_args_list[[1]] )
+  
+  function_args <- func_args_list[-1]
+  
+  # print( eval(function_args[["analytes"]]) )
+  
+  function_args_names <- as.character(names( function_args ))
+  
+  arg_evals <- unlist(lapply(function_args_names, function( arg_name ){
+    list_obj <- eval(getListObj(function_args, arg_name))
+    class_check <- (is.character(list_obj) | is.numeric(list_obj) | is.logical(list_obj))
+    is_character_check <- is.character(list_obj)
+    ## Check if list obj is more than one element
+    if ( length(list_obj)>1 & is_character_check ) {
+      list_obj <- paste0( "c(", paste0( paste0("'", list_obj, "'"), collapse = ', '), ")" )
+    } else if ( length(list_obj)==1 & is_character_check ) {
+      list_obj <- paste0("'", list_obj, "'")
+    } else if ( length(list_obj)>1 & !is_character_check ) {
+      list_obj <- paste0( "c(", paste0( list_obj, collapse = ', '), ")" )
+    }
+    
+    sprintf( "%s = %s", arg_name, ifelse( class_check, 
+                                          list_obj, 
+                                          class(list_obj) ) ) 
+  }))
+  
+  # print(function_name)
+  # print(paste(arg_evals, collapse = ', '))
+  
+  sprintf( "Function Call:\n\n%s( %s )\n", function_name, paste(arg_evals, collapse = ', ') )
+  
+}
+
+
+#' Fetch the reference run-index.
+#'
+#' Provides the reference run-index based on lowest m-score.
+#' @importFrom dplyr %>%
+#' @author Shubham Gupta, \email{shubh.gupta@mail.utoronto.ca}
+#'
+#' ORCID: 0000-0003-3500-8152
+#'
+#' License: (c) Author (2019) + MIT
+#' Date: 2019-12-13
+#' @param oswFiles (list of data-frames) it is output from getOswFiles function.
+#' @param analyte (string) analyte is as PRECURSOR.GROUP_LABEL or as PEPTIDE.MODIFIED_SEQUENCE and PRECURSOR.CHARGE from osw file.
+#' @return An integer
+#' @examples
+#' data(oswFiles_DIAlignR, package="DIAlignR")
+#' \dontrun{
+#' getRefRun(oswFiles = oswFiles_DIAlignR, analyte = "AQPPVSTEY_2")
+#' getRefRun(oswFiles = oswFiles_DIAlignR, analyte = "14299_QFNNTDIVLLEDFQK/3")
+#' }
+#' @seealso \code{\link{getOswFiles}, \link{getOswAnalytes}}
+#' @export
+getRefRun <- function(oswFiles, analyte){
+  # Select reference run based on m-score
+  minMscore <- 1
+  refRunIdx <- NULL
+  for(runIdx in seq_along(oswFiles)){
+    ## Filter first on m_score to find the best candiate peptide feature
+    m_score <- oswFiles[[runIdx]] %>%
+      # dplyr::filter(transition_group_id == analyte )
+      dplyr::group_by( transition_group_id ) %>%
+      dplyr::filter(transition_group_id == analyte & m_score==min(m_score) ) 
+    ## Check to see if there are still more than one peak group per peptide option.
+    ## If there is then do a second pass filter for the lowest peakgroup rank
+    if ( dim(m_score)[1]>1 ){
+      m_score %>%
+        dplyr::filter(transition_group_id == analyte & peak_group_rank==min(peak_group_rank) ) -> m_score
+      if ( dim(m_score)[1]>1 ){
+        m_score %>%
+          dplyr::filter( dplyr::row_number()==1 ) -> m_score
+      }
+    }
+    ## Extract on the m_score
+    m_score %>%
+      dplyr::ungroup() %>% .$m_score -> m_score
+    # Check for numeric(0) condition and proceed.
+    tryCatch(
+      expr = {
+        if(length(m_score) != 0){
+          if(m_score < minMscore){
+            minMscore <- m_score
+            refRunIdx <- runIdx
+          }
+        }
+      }, 
+      error = function(e){
+        message( sprintf("[DrawAlignR::utils::getRefRun] There was an error that occured during reference run index extraction.\n%s", e$message))
+      }
+    )
+    
+  }
+  ## Return refRunIdx
+  refRunIdx
+}
+
+#' Chromatogram indices of analyte in a run.
+#'
+#' select chromatogram indices by matching analyte and runname in oswFiles.
+#' @importFrom dplyr %>%
+#' @author Shubham Gupta, \email{shubh.gupta@mail.utoronto.ca}
+#'
+#' ORCID: 0000-0003-3500-8152
+#'
+#' License: (c) Author (2019) + MIT
+#' Date: 2019-12-13
+#' @param oswFiles (list of data-frames) it is the output from getOswFiles function.
+#' @param runname (string) Must be a combination of "run" and an iteger e.g. "run2".
+#' @param analyte (string) analyte is as PRECURSOR.GROUP_LABEL or as PEPTIDE.MODIFIED_SEQUENCE and PRECURSOR.CHARGE from osw file.
+#' @return A vector of Integers
+#' @examples
+#' data(oswFiles_DIAlignR, package="DIAlignR")
+#' \dontrun{
+#' selectChromIndices(oswFiles = oswFiles_DIAlignR, runname = "run2", analyte = "AQPPVSTEY_2")
+#' selectChromIndices(oswFiles = oswFiles_DIAlignR, runname = "run0",
+#'  analyte = "14299_QFNNTDIVLLEDFQK/3")
+#' }
+#' @seealso \code{\link{getOswFiles}, \link{getOswAnalytes}}
+#' @export
+selectChromIndices <- function(oswFiles, runname, analyte, product_mz_filter_list=NULL, return_index="chromatogramIndex",  keep_all_detecting=T){
+  
+  ## TMP Fix
+  ## Second pass filter to ensure only one analyte is being mapped once to the same peak
+  ## There are cases for ipf where different assays would result in the same peptide being mapped to the same peak multiple times due to being the winning hypothesis
+  oswFiles[[runname]] %>%
+    dplyr::group_by( transition_group_id, filename ) %>%
+    dplyr::add_count() %>%
+    dplyr::ungroup() -> tmp
+  tmp %>%
+    dplyr::group_by( transition_group_id, filename ) %>%
+    dplyr::filter( ifelse( n>1, ifelse(m_score==min(m_score), T, F), T ) ) -> tmp
+  ## Remove count column
+  tmp$n <- NULL
+  ## count again to check if there are sitll more than one entry
+  tmp %>%
+    dplyr::group_by( transition_group_id, filename ) %>%
+    dplyr::add_count() %>%
+    dplyr::ungroup() -> tmp
+  ## Remove count column
+  tmp$n <- NULL
+  
+  # Pick chromatrogram indices from osw table.
+  chromIndices <- tmp %>%
+    dplyr::filter(transition_group_id == analyte) %>% dplyr::pull( !!rlang::sym(return_index) )
+  
+  # Check for character(0) condition and proceed.
+  if(length(chromIndices) != 0){
+    ### TODO: Make this more stream-line
+    if ( !is.null(product_mz_filter_list) ){
+      oswFiles[[runname]] %>%
+        dplyr::filter(transition_group_id == analyte) %>%
+        dplyr::filter( m_score == min(m_score) ) %>%
+        dplyr::filter( peak_group_rank==min(peak_group_rank) ) %>%
+        dplyr::slice(1L) %>%
+        tidyr::separate_rows( product_mz, detecting_transitions, identifying_transitions, chromatogramIndex, transition_ids ) %>%
+        dplyr::mutate( product_mz_detecting=paste(product_mz, detecting_transitions, sep='_') ) -> tmp_long_oswFiles
+      ## Should all detecting transitions be forced to be kept even if mz is not overlapping
+      if ( keep_all_detecting ){
+        transition_boolean_filter <- (tmp_long_oswFiles$product_mz_detecting %in% product_mz_filter_list) | tmp_long_oswFiles$detecting_transitions==1
+      } else {
+        transition_boolean_filter <- (tmp_long_oswFiles$product_mz_detecting %in% product_mz_filter_list)
+      }
+      
+      tmp_long_oswFiles %>%
+        dplyr::filter( transition_boolean_filter ) %>% 
+        unique() %>%
+        dplyr::pull( !!rlang::sym(return_index) ) %>% as.integer() -> chromIndices
+      
+    } else {
+      chromIndices <- as.integer(strsplit(chromIndices, split = ",")[[1]])
+    }
+  } else {
+    return(NULL)
+  }
+  if(any(is.na(chromIndices))){
+    # Indices for one or more fragment-ions are missing. This could happen if .chrom.mzML file doesn't have them.
+    return(NULL)
+  }
+  # Select the first row if there are many peak-groups.
+  chromIndices
 }
 
 #' Find if an object exists in a list
@@ -12,6 +206,7 @@ text2numericInput <- function(text) {
 #' @param x A list object
 #' @param name Name of sub-components in list
 #' @return logical value if name is present in list
+#' @export
 isListObj <- function(x, name) {
   pos <- match(name, names(x))
   if (!is.na(pos)){ return(TRUE) } else { return(FALSE) }
@@ -29,6 +224,7 @@ isListObj <- function(x, name) {
 #' @param x A list object
 #' @param name Name of sub-components in list
 #' @return returns the named object in list
+#' @export
 getListObj <- function(x, name) {
   pos <- match(name, names(x))
   if (!is.na(pos)) return(x[[pos]])
@@ -40,9 +236,25 @@ getListObj <- function(x, name) {
   }
 }
 
+#' check_sqlite_table
+#' @param conn Connection to database
+#' @param table Character vector to test for, if present in database
+#' @param msg A character to pre-append to stop error message. (Optional)
+#' @return Logical value, TRUE if table is present
+#' 
+#' @importFrom DBI dbExistsTable
+#' @export
+check_sqlite_table <- function( conn, table, msg="" ) {
+  if( !DBI::dbExistsTable( conn, table ) ){
+    out.msg <- sprintf("%s An Error occured! There was no %s Table found in %s.\nCheck to see if you are using the right file, or if the file is corrupted.\n", msg, table, conn@dbname)
+    stop( out.msg, call.=FALSE )
+  }  
+}
+
 #' Check is SCORE_IPF is in database
 #' @param oswFile A character vector pointing to path of osw file
 #' @return returns a logical value if SCORE_IPF is present or not
+#' @export
 Score_IPF_Present <- function( oswFile ){
   db <- DBI::dbConnect( RSQLite::SQLite(), oswFile )
   if ( DBI::dbExistsTable( db, "SCORE_IPF" ) ){
@@ -52,6 +264,29 @@ Score_IPF_Present <- function( oswFile ){
   }
   DBI::dbDisconnect( db )
   return( use_ipf_score )
+}
+
+#' Convert Variable to character including NULL
+#' @param x An object to coerce to character
+#' @return returns a character vector
+#' @export
+as_character_null <- function( x ){
+  
+  if ( is.null(x) ){
+    return( 'NULL' )
+  } else {
+    return( as.character( x ) )
+  }
+  
+}
+
+#' Convert list object to printable character vectory
+#' @param list_obj A list object to coerce to character
+#' @param collapse A character vector to collapse characters on
+#' @return returns a character vector
+#' @export
+listTostring <- function( list_obj, collapse = '\n' ){
+  paste( paste(names(list_obj), list_obj, sep=' = '), collapse = collapse )
 }
 
 testAlignObj <- function(analyteInGroupLabel = FALSE){

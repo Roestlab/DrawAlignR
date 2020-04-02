@@ -9,7 +9,9 @@ getAnalytesQuery(
   oswMerged = TRUE,
   filename = NULL,
   runType = "DIA_Proteomics",
-  analyteInGroupLabel = FALSE
+  analyteInGroupLabel = FALSE,
+  identifying = FALSE,
+  identifying.transitionPEPfilter = 0.6
 )
 }
 \arguments{

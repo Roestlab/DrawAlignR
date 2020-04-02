@@ -12,9 +12,12 @@ Description: A package for the visualization of aligned Ms2 chromatograms. The m
              to be used downstream of a chromatogram alignment tool for ms2 chromatograms, to draw and visualize
              the newly generated aligned chromatograms.
 Depends: R (>= 3.0)
+biocViews: 
 Imports: shiny,
           shinyjs,
           shinyFiles,
+          shinyWidgets,
+          shinyBS,
           data.table,
           plyr,
           dplyr,
@@ -22,6 +25,7 @@ Imports: shiny,
           tidyr,
           tidyverse,
           tibble,
+          parallel,
           ggplot2,
           gridExtra,
           ggrepel,
@@ -32,13 +36,15 @@ Imports: shiny,
           crayon,
           pbmcapply,
           zoo,
-          mzR,
+          mzR, zlibbioc,
           Rcpp,
           DIAlignR,
           mstools
-Remotes: github::Roestlab/mstools,
+Remotes: github::singjc/mstools,
          github::shubham1637/DIAlignR
 License: MIT
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.0.2
+BugReports: Roestlab/DrawAlignR
+

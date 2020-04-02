@@ -11,7 +11,8 @@ getQuery(
   filename = NULL,
   runType = "DIA_Proteomics",
   analyteInGroupLabel = FALSE,
-  identifying = FALSE
+  identifying = FALSE,
+  identifying.transitionPEPfilter = 0.6
 )
 }
 \arguments{
@@ -23,7 +24,7 @@ getQuery(
 
 \item{filename}{(string) as mentioned in RUN table of osw files..}
 
-\item{runType}{(char) This must be one of the strings "DIA_proteomics", "DIA_Metabolomics".}
+\item{runType}{(char) This must be one of the strings "DIA_proteomics", "DIA_Metabolomics", "DIA_Proteomics_ipf".}
 
 \item{analyteInGroupLabel}{(logical) TRUE for getting analytes as PRECURSOR.GROUP_LABEL from osw file.}
 

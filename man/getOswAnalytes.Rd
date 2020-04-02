@@ -2,7 +2,8 @@
 % Please edit documentation in R/read_osw.R
 \name{getOswAnalytes}
 \alias{getOswAnalytes}
-\title{Fetch analytes from OSW file}
+\title{Fetch analytes from OSW file
+Get a data-frame of analytes, their chromatogram indices and associated FDR-scores.}
 \usage{
 getOswAnalytes(
   dataPath,
@@ -10,7 +11,9 @@ getOswAnalytes(
   oswMerged = TRUE,
   analyteInGroupLabel = FALSE,
   maxFdrQuery = 0.05,
-  runType = "DIA_proteomics"
+  runType = "DIA_proteomics",
+  identifying = FALSE,
+  identifying.transitionPEPfilter = 0.6
 )
 }
 \arguments{
@@ -37,6 +40,7 @@ FALSE for fetching analytes as PEPTIDE.MODIFIED_SEQUENCE and PRECURSOR.CHARGE fr
 \item{transition_id}{(integer) fragment-ion ID associated with transition_group_id. This is matched with chromatogram ID in mzML file.}
 }
 \description{
+Fetch analytes from OSW file
 Get a data-frame of analytes, their chromatogram indices and associated FDR-scores.
 }
 \examples{

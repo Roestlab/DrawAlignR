@@ -14,6 +14,7 @@ getOswFiles(
   runType = "DIA_proteomics",
   analyteInGroupLabel = FALSE,
   identifying = FALSE,
+  identifying.transitionPEPfilter = 0.6,
   mzPntrs = NULL
 )
 }

@@ -22,10 +22,10 @@ getSingleAlignedChrom <- function(XIC_group, idx, t.ref){
   # Update intensities with aligned time indices.
   for(k in seq_along(XIC_group)){
     tmp_chrom_list <- list()
-    mutateInt <- XIC_group[[k]][idx, 2]
+    mutateInt <- XIC_group[[k]][[2]][idx]
     mutateInt <- zoo::na.locf(zoo::na.locf(mutateInt, na.rm = FALSE),fromLast = TRUE)
     #TODO: interpolate mutateT so that it can be plotted on x-axis.
-    mutateT <- mapIdxToTime(XIC_group[[1]][, "time"], idx)
+    mutateT <- mapIdxToTime(XIC_group[[1]][["time"]], idx)
     tmp_chrom_list[[ names(XIC_group[[k]])[1] ]] <- t.ref#c(1:length(mutateInt))
     
     tmp_chrom_list[[ names(XIC_group[[k]])[2] ]] <- mutateInt
@@ -80,13 +80,13 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
   AlignedIndices <- AlignedIndices[(AlignedIndices[,"indexAligned.ref"] != 0L), ]
   AlignedIndices[, 1:2][AlignedIndices[, 1:2] == 0] <- NA
   t.ref <- XICs.ref[[1]][["time"]]
-  t.eXp <- mapIdxToTime( XICs.eXp[[1]][["time"]], AlignedIndices[,"indexAligned.eXp"] )
+  t.eXp <- mapIdxToTime( timeVec = XICs.eXp[[1]][["time"]], idx = AlignedIndices[,"indexAligned.eXp"] )
   
 
   ###################### Plot unaligned chromatogram ######################################
   
   ## Get transition information from the osw file
-  transition_table <- mstools::getPepLibData_( global$oswFile[[1]], mod_peptide_id = c(input$Mod, mstools::unimodTocodename(input$Mod)) )
+  transition_table <- mstools::getPepLibData_( global$oswFile[[1]], peptide_id = gsub("\\([a-zA-Z0-9:.]+\\)", '', input$Mod) )
   values$transition_table <- transition_table
   
   ##**************************
@@ -107,11 +107,11 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
     }
   }
   g <- ggplot2::ggplot()
-  tictoc::tic("Plotting Ref")
   g <- mstools::getXIC( graphic_obj = g, 
                         df_lib = transition_table, 
                         mod = input$Mod, 
                         Isoform_Target_Charge = input$Charge,
+                        SCORE_IPF = Score_IPF_Present(global$oswFile[[1]]),
                         chromatogram_file = global$chromFile[ grepl(refRun, names(global$chromFile)) ][[1]], 
                         chromatogram_data_points_list=XICs.ref.rename,
                         transition_type = 'detecting', 
@@ -126,9 +126,9 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
   max_Int <- g$max_Int
   g <- g$graphic_obj
   
-  ###################################
-  ##     ADD OSW RESULTS INFO     ###
-  ###################################
+  ##*********************************
+  ##     ADD OSW RESULTS INFO     
+  ##*********************************
   g <- mstools::getXIC( graphic_obj = g, 
                         df_lib = transition_table, 
                         mod = input$Mod, 
@@ -137,6 +137,7 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
                         transition_type='none', 
                         max_Int = max_Int, 
                         in_osw = global$oswFile[[1]], 
+                        SCORE_IPF = Score_IPF_Present( global$oswFile[[1]] ),
                         doFacetZoom=F, 
                         top_trans_mod_list=NULL, 
                         RT_pkgrps=NULL, 
@@ -146,73 +147,74 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
                         show_legend = T  )
   max_Int <- g$max_Int
   g <- g$graphic_obj
-  tictoc::toc()
   prefU <- g + ggplot2::xlab("Reference RT")
   
   ##**************************
-  ## Experiment Chromatogram 
+  ## Experiment Chromatogram
   ##**************************
-  
+  if ( F ){
   message("Plotting Experiment Chromatogram")
-  
+
   XICs.eXp.rename <- XICs.eXp
-  
+
   ## Rename list using transition ids
   names(XICs.eXp.rename) <- unlist(lapply(XICs.eXp.rename, function(x){ gsub("^X*", "", names(x)[2]) }))
-  
+
   for (i in seq(1:length(XICs.eXp.rename))){
     names(XICs.eXp.rename[[i]]) <- c('RT','Int')
     if ( length(smooth_chromatogram)>0 ){
       XICs.eXp.rename[[i]]$Int <- signal::sgolayfilt( XICs.eXp.rename[[i]]$Int, p = smooth_chromatogram$p, n = smooth_chromatogram$n )
     }
   }
-  
+
   g <- ggplot2::ggplot()
   invisible( capture.output(suppressWarnings(
-  g <- mstools::getXIC( graphic_obj = g, 
-                        df_lib = transition_table, 
-                        mod = input$Mod, 
+  g <- mstools::getXIC( graphic_obj = g,
+                        df_lib = transition_table,
+                        mod = input$Mod,
                         Isoform_Target_Charge = input$Charge,
-                        chromatogram_file = global$chromFile[ grepl(eXpRun, names(global$chromFile)) ][[1]], 
+                        SCORE_IPF = Score_IPF_Present( global$oswFile[[1]] ),
+                        chromatogram_file = global$chromFile[ grepl(eXpRun, names(global$chromFile)) ][[1]],
                         chromatogram_data_points_list=XICs.eXp.rename,
-                        transition_type = 'detecting', 
-                        uni_mod_list = NULL, 
-                        max_Int = NULL, 
-                        in_osw=NULL, 
-                        smooth_chromatogram=NULL, 
-                        doFacetZoom=F, 
-                        top_trans_mod_list=NULL, 
+                        transition_type = 'detecting',
+                        uni_mod_list = NULL,
+                        max_Int = NULL,
+                        in_osw=NULL,
+                        smooth_chromatogram=NULL,
+                        doFacetZoom=F,
+                        top_trans_mod_list=NULL,
                         show_n_transitions=input$nIdentifyingTransitions,
                         transition_dt=NULL )
   )))
   max_Int <- g$max_Int
   g <- g$graphic_obj
-  
-  ###################################
-  ##     ADD OSW RESULTS INFO     ###
-  ###################################
+
+  ##*********************************
+  ##     ADD OSW RESULTS INFO     
+  ##*********************************
   invisible( capture.output(suppressWarnings(
-  g <- mstools::getXIC( graphic_obj = g, 
-                        df_lib = transition_table, 
-                        mod = input$Mod, 
+  g <- mstools::getXIC( graphic_obj = g,
+                        df_lib = transition_table,
+                        mod = input$Mod,
                         Isoform_Target_Charge = input$Charge,
-                        chromatogram_file = global$chromFile[ grepl(eXpRun, names(global$chromFile)) ][[1]], 
-                        transition_type='none', 
-                        max_Int = max_Int, 
-                        in_osw = global$oswFile[[1]], 
-                        doFacetZoom=F, 
-                        top_trans_mod_list=NULL, 
-                        RT_pkgrps=NULL, 
-                        show_manual_annotation=NULL, 
+                        chromatogram_file = global$chromFile[ grepl(eXpRun, names(global$chromFile)) ][[1]],
+                        transition_type='none',
+                        max_Int = max_Int,
+                        in_osw = global$oswFile[[1]],
+                        SCORE_IPF = Score_IPF_Present( global$oswFile[[1]] ),
+                        doFacetZoom=F,
+                        top_trans_mod_list=NULL,
+                        RT_pkgrps=NULL,
+                        show_manual_annotation=NULL,
                         show_peak_info_tbl=F,
-                        FacetFcnCall=NULL, 
+                        FacetFcnCall=NULL,
                         show_legend = T  )
   )))
   max_Int <- g$max_Int
   g <- g$graphic_obj
-  
+
   peXpU <- g + ggplot2::xlab("Experiment RT")
-  
+  }
   ###################### Plot aligned chromatogram ######################################
   
   ##***********************************
@@ -221,11 +223,7 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
   
   message("Plotting Aligned Chromatogram")
   
-  
-  
-  
-  
-  XICs.eXp.aligned <- getSingleAlignedChrom(XICs.eXp, idx = AlignedIndices[,"indexAligned.eXp"], t.ref)
+  XICs.eXp.aligned <- getSingleAlignedChrom(XIC_group = XICs.eXp, idx = AlignedIndices[,"indexAligned.eXp"], t.ref)
   
   ## Rename list using transition ids
   names(XICs.eXp.aligned) <- unlist(lapply(XICs.eXp.aligned, function(x){ gsub("^X*", "", names(x)[2]) }))
@@ -239,10 +237,11 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
   
   g <- ggplot2::ggplot()
   invisible( capture.output(suppressWarnings(
-  g <- mstools::getXIC( graphic_obj = g, 
+  g <-  mstools::getXIC( graphic_obj = g, 
                         df_lib = transition_table, 
                         mod = input$Mod, 
                         Isoform_Target_Charge = input$Charge,
+                        SCORE_IPF = Score_IPF_Present( global$oswFile[[1]] ),
                         chromatogram_file = global$chromFile[ grepl(eXpRun, names(global$chromFile)) ][[1]], 
                         chromatogram_data_points_list=XICs.eXp.aligned,
                         transition_type = 'detecting', 
@@ -258,11 +257,11 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
   max_Int <- g$max_Int
   g <- g$graphic_obj
   
-  ###################################
-  ##     ADD OSW RESULTS INFO     ###
-  ###################################
+  ##*********************************
+  ##     ADD OSW RESULTS INFO     
+  ##*********************************
   invisible( capture.output(suppressWarnings(
-  g <- mstools::getXIC( graphic_obj = g, 
+  g <-  mstools::getXIC( graphic_obj = g, 
                         df_lib = transition_table, 
                         mod = input$Mod, 
                         Isoform_Target_Charge = input$Charge,
@@ -270,6 +269,7 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
                         transition_type='none', 
                         max_Int = max_Int, 
                         in_osw = global$oswFile[[1]], 
+                        SCORE_IPF = Score_IPF_Present( global$oswFile[[1]] ),
                         annotate_best_pkgrp=F,
                         doFacetZoom=F, 
                         top_trans_mod_list=NULL, 
@@ -318,17 +318,23 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
       dplyr::filter( Charge==input$Charge ) -> osw_dt
     
     ## Remove rows with NULL value in ipf_pep
-    osw_dt %>%
-      dplyr::filter( !is.null(ipf_pep) ) %>%
-      dplyr::filter( !is.nan(ipf_pep) ) -> osw_dt
+    if ("ipf_pep" %in% colnames(osw_dt)) {
+      if (!is.null(unlist(osw_dt$ipf_pep))) {
+        osw_dt <- osw_dt %>% dplyr::filter(!is.null(ipf_pep)) %>% 
+          dplyr::filter(!is.nan(ipf_pep))
+      }
+    }
     
     ## Remove rows that are not current peptide
     osw_dt %>%
       dplyr::filter( FullPeptideName == input$Mod ) -> osw_dt
     
     ## Get data for the best peak as defined by the feature with the lowest IPF posterior error probability 
-    osw_dt %>%
-      dplyr::filter( m_score==min(m_score) ) -> osw_dt #### No longer filter by peak group
+    if ("m_score" %in% colnames(osw_dt)) {
+      osw_dt <- osw_dt %>% dplyr::filter(m_score == min(m_score))
+    }  else {
+      osw_dt <- osw_dt %>% dplyr::filter(ms2_m_score == min(ms2_m_score))
+    }
     
     if ( dim(osw_dt)[1] > 1 ){
       osw_dt %>%
@@ -346,21 +352,27 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
       dplyr::filter( Charge==input$Charge ) -> osw_dt_ref
     
     ## Remove rows with NULL value in ipf_pep
-    osw_dt_ref %>%
-      dplyr::filter( !is.null(ipf_pep) ) %>%
-      dplyr::filter( !is.nan(ipf_pep) ) -> osw_dt_ref
+    if ("ipf_pep" %in% colnames(osw_dt)) {
+      if (!is.null(unlist(osw_dt$ipf_pep))) {
+        osw_dt <- osw_dt %>% dplyr::filter(!is.null(ipf_pep)) %>% 
+          dplyr::filter(!is.nan(ipf_pep))
+      }
+    }
     
     ## Remove rows that are not current peptide
-    osw_dt_ref %>%
-      dplyr::filter( FullPeptideName == input$Mod ) -> osw_dt_ref
+    osw_dt %>%
+      dplyr::filter( FullPeptideName == input$Mod ) -> osw_dt
     
     # ## Get data for the best peak as defined by the feature with the lowest IPF posterior error probability 
-    # osw_dt_ref %>%
-    #   dplyr::filter( m_score==min(m_score) ) -> osw_dt_ref #### No longer filter by peak group
+    # if ("m_score" %in% colnames(osw_dt)) {
+    #   osw_dt <- osw_dt %>% dplyr::filter(m_score == min(m_score))
+    # }  else {
+    #   osw_dt <- osw_dt %>% dplyr::filter(ms2_m_score == min(ms2_m_score))
+    # }
     # 
-    # if ( dim(osw_dt_ref)[1] > 1 ){
-    #   osw_dt_ref %>%
-    #     dplyr::filter( peak_group_rank==min(peak_group_rank) ) -> osw_dt_ref
+    # if ( dim(osw_dt)[1] > 1 ){
+    #   osw_dt %>%
+    #     dplyr::filter( peak_group_rank==min(peak_group_rank) ) -> osw_dt
     # }
     
     df <- data.frame(
@@ -375,13 +387,15 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
     
     expPeakLabelIndex <- which.min(abs(df$rt.exp - osw_dt$RT))
     
+    # matching_refIndex <- df$index.ref[ match(df$index.exp[ expPeakLabelIndex ], df$index.ref) ]
+    
     refCorresponding_rt <- df$rt.ref[ expPeakLabelIndex ]
     
     refCorresponding_rt_osw <- osw_dt_ref[ which.min(abs(osw_dt_ref$RT - refCorresponding_rt)), ]
     
     
-    XICs.eXp[[1]][['time']][ AlignedIndices[, 'indexAligned.eXp'] ]
-    XICs.ref[[1]][["time"]][ AlignedIndices[, 'indexAligned.ref'] ]
+    # XICs.eXp[[1]][['time']][ AlignedIndices[, 'indexAligned.eXp'] ]
+    # XICs.ref[[1]][["time"]][ AlignedIndices[, 'indexAligned.ref'] ]
     if ( dim(refCorresponding_rt_osw)[1]>0 ){
     peXpA <- peXpA +
       geom_rect(data = data.frame(xmin = refCorresponding_rt_osw$leftWidth,
@@ -391,12 +405,12 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
                 aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
                 fill = "blue", alpha = 0.2)
     } else {
-      message( "There was no Original Peak found...")
+      warning( "[DrawAlignR::getAlignedFigs] Could no find Original Peak relative to index...")
     }
   }
   
   ###################### return ggplot objects ######################################
-  figs <- list("prefU" = prefU,"peXpU" = peXpU, "peXpA" = peXpA)
+  figs <- list("prefU" = prefU, "peXpA" = peXpA)
   figs
 }
 
@@ -445,7 +459,7 @@ plotAlignedAnalytes <- function(AlignObjOutput, plotType = "All", DrawAlignR = F
     figs <- getAlignedFigs(AlignObj, refRun, eXpRun, XICs.ref, XICs.eXp, refPeakLabel, annotatePeak, annotateOrgPeak, global, values, input)
     
     if(DrawAlignR){
-      cat("Succesfully drew ref, exp and exp aligned figs")
+      cat("Succesfully drew ref, exp and exp aligned figs\n")
       return(figs)}
     
     if(plotType == "onlyAligned"){
@@ -477,6 +491,7 @@ plotAlignedAnalytes <- function(AlignObjOutput, plotType = "All", DrawAlignR = F
 #' License: (c) Author (2019) + MIT
 #' Date: 2019-12-13
 #' @param AlignObjOutput (list) The list contains AlignObj, raw XICs for reference and experiment, and reference-peak label.
+#' @param title (char) Title to use for plot
 #' @return A plot to the current device.
 #'
 #' @examples
@@ -487,15 +502,45 @@ plotAlignedAnalytes <- function(AlignObjOutput, plotType = "All", DrawAlignR = F
 #' AlignObjOutput <- getAlignObjs(analytes = "QFNNTDIVLLEDFQK_3", runs, dataPath = dataPath,
 #'  objType = "medium")
 #' plotAlignmentPath(AlignObjOutput)
+#' @importFrom ggplot2 ggplot geom_tile geom_contour ggtitle labs theme aes element_blank
 #' @export
-plotAlignmentPath <- function(AlignObjOutput){
+plotAlignmentPath <- function(AlignObjOutput, title=NULL){
+  message(sprintf("[DrawAlignR::plotAlignmentPath] Generating alignment path plot for %s.\n", title))
   Alignobj <- AlignObjOutput[[1]][[1]]
   analyte <- names(AlignObjOutput)[1]
   s <- Alignobj@s
   Path <- Alignobj@path[2:nrow(Alignobj@path), 2:ncol(Alignobj@path)]
-  lattice::levelplot(s, axes = TRUE, xlab = "ref index", ylab = "eXp index",
-                     main = paste0("Hybrid alignment through the similarity matrix\n for ",
-                                   analyte), fontsize = 7) +
-    latticeExtra::as.layer(lattice::levelplot(Path, col.regions = c("transparent", "green"),
-                                              alpha = 1, axes = FALSE))
+  # lattice::levelplot(s, axes = TRUE, xlab = "ref index", ylab = "eXp index",
+  #                    main = paste0("Hybrid alignment through the similarity matrix\n for ",
+  #                                  analyte), fontsize = 7) +
+  #   latticeExtra::as.layer(lattice::levelplot(Path, col.regions = c("transparent", "green"),
+  #                                             alpha = 1, axes = FALSE))
+  suppressWarnings(
+  Weight_dt <- data.table::melt( s )
+  )
+  suppressWarnings(
+  Path_dt <- data.table::melt( Path )
+  )
+  
+  plot_path <- ggplot2::ggplot() +
+    ggplot2::geom_tile(data=Weight_dt, ggplot2::aes(Var1, Var2, fill = value)) + 
+    ggplot2::geom_contour(data=Weight_dt, ggplot2::aes(Var1, Var2, z = value)) 
+  
+  if ( 1 %in% Path ){
+    message("[DrawAlignR::plotAlignmentPath] Adding alignment path to weighted contour plot.\n")
+    plot_path <- plot_path + ggplot2::geom_contour(data=Path_dt, ggplot2::aes(Var1, Var2, z = value), colour = "red") +
+      ggplot2::ggtitle( title ) +
+      ggplot2::labs(x="ref Index", y="eXp Index") +
+      ggplot2::theme(panel.background = ggplot2::element_blank())
+  } else {
+    message("[DrawAlignR::plotAlignmentPath] No alignment path found.\n")
+    plot_path <- plot_path + 
+      ggplot2::ggtitle( title ) +
+      ggplot2::labs(x="ref Index", y="eXp Index", subtitle = "Algorithm was not able to find a path..") +
+      ggplot2::theme(panel.background = ggplot2::element_blank())
+  }
+  
+  plot_path 
+  
 }
+

@@ -4,12 +4,14 @@
 \alias{getmzPntrs}
 \title{Get a list of mz Objects}
 \usage{
-getmzPntrs(input, global)
+getmzPntrs(input, global, progress = FALSE)
 }
 \arguments{
 \item{input}{A shiny input variable that contains Working Directory Information}
 
 \item{global}{A list variable containing paths to chromatogram files}
+
+\item{progress}{A logical value to track progress of cached files}
 }
 \value{
 (A list of mzRpwiz)

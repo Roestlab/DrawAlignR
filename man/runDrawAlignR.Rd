@@ -7,7 +7,7 @@
 runDrawAlignR()
 }
 \value{
-None. Runs the Shiny webapp found in inst/available-shiny-apps/DrawAlignR/app.R
+None. Runs the Shiny webapp found in inst/shiny-script/app.R
 }
 \description{
 Launches the shiny app for DrawAlignR - User facing function.

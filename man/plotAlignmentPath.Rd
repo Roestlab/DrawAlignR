@@ -4,10 +4,12 @@
 \alias{plotAlignmentPath}
 \title{Visualize alignment path through similarity matrix}
 \usage{
-plotAlignmentPath(AlignObjOutput)
+plotAlignmentPath(AlignObjOutput, title = NULL)
 }
 \arguments{
 \item{AlignObjOutput}{(list) The list contains AlignObj, raw XICs for reference and experiment, and reference-peak label.}
+
+\item{title}{(char) Title to use for plot}
 }
 \value{
 A plot to the current device.

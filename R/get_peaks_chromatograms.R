@@ -13,6 +13,7 @@
 #' @param SgolayFiltOrd (integer) It defines the polynomial order of filer.
 #' @param SgolayFiltLen (integer) Must be an odd number. It defines the length of filter.
 #' @return A list of data-frames. Each data frame has elution time and intensity of fragment-ion XIC.
+#' @importFrom parallel mclapply detectCores
 #' @examples
 #' dataPath <- system.file("extdata", package = "DIAlignR")
 #' mzmlName<-paste0(dataPath,"/mzml/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML")
@@ -22,14 +23,26 @@
 #' XIC_group <- extractXIC_group(mz, chromIndices, SgolayFiltOrd = 4, SgolayFiltLen = 13)
 #' }
 extractXIC_group <- function(mz, chromIndices, XICfilter = "sgolay", SgolayFiltOrd = 4, SgolayFiltLen = 9){
-  XIC_group <- lapply(seq_along(chromIndices), function(i) {
-    rawChrom <- mzR::chromatograms(mz, chromIndices[i])
-    # Savitzky-Golay filter to smooth chromatograms, filter order p = 3, filter length n = 13
-    if(XICfilter == "sgolay"){
-      rawChrom[,2] <- signal::sgolayfilt(rawChrom[,2], p = SgolayFiltOrd, n = SgolayFiltLen)
-    }
-    return(rawChrom)
-  })
+  if( any(class(mz)=="mzRpwiz") ){
+    message("[DrawAlignR::extractXIC_group] Calling mzR to extract XICs\n")
+    XIC_group <- lapply( seq_along(chromIndices), function(i) {
+      
+      rawChrom <- mzR::chromatograms(mz, chromIndices[i])
+      
+      # Savitzky-Golay filter to smooth chromatograms, filter order p = 3, filter length n = 13
+      if(XICfilter == "sgolay"){
+        rawChrom[,2] <- signal::sgolayfilt(rawChrom[,2], p = SgolayFiltOrd, n = SgolayFiltLen)
+      }
+      
+      return(rawChrom)
+    } )
+  } else if ( is.data.frame(mz) ) { # TODO Need to add a better check.
+    message("[DrawAlignR::extractXIC_group] Calling mstools to extract XICs\n")
+    XIC_group <- mstools::getChromatogramDataPoints_( filename = ".sqMass", chromIndices, id_type = "chromatogramIndex", name_time = "time", name_intensity = "paste0('X', data_row$FRAGMENT_ID)", mzPntrs = mz, SgolayFiltOrd = SgolayFiltOrd, SgolayFiltLen = SgolayFiltLen )
+    names(XIC_group) <- NULL
+  }
+  message(sprintf("[DrawAlignR::extractXIC_group] Lenth of XIC_group: %s\n", length(XIC_group)))
+  
   return(XIC_group)
 }
 
@@ -76,7 +89,7 @@ getXICs4AlignObj <- function(dataPath, runs, oswFiles, analytes, XICfilter = "sg
     message("Fetching XICs from ", runname, " ", runs[[runname]])
     XICs[[i]] <- lapply(seq_along(analytes), function(j){
       analyte <- analytes[j]
-      chromIndices <- DIAlignR:::selectChromIndices(oswFiles, runname = runname, analyte = analyte)
+      chromIndices <- selectChromIndices(oswFiles, runname = runname, analyte = analyte)
       if(is.null(chromIndices)){
         warning("Chromatogram indices for ", analyte, " are missing in ", runs[[runname]])
         message("Skipping ", analyte)
@@ -128,26 +141,26 @@ getXICs4AlignObj <- function(dataPath, runs, oswFiles, analytes, XICfilter = "sg
 #' @export
 getXICs <- function(analytes, runs, dataPath = ".", maxFdrQuery = 1.0, XICfilter = "sgolay",
                     SgolayFiltOrd = 4, SgolayFiltLen = 9, runType = "DIA_proteomics",
-                    oswMerged = TRUE, nameCutPattern = "(.*)(/)(.*)", analyteInGroupLabel = FALSE, identifying = FALSE, mzPntrs=NULL){
+                    oswMerged = TRUE, nameCutPattern = "(.*)(/)(.*)", chrom_ext=".chrom.mzML", analyteInGroupLabel = FALSE, mzPntrs=NULL){
   if( (SgolayFiltLen %% 2) != 1){
     print("SgolayFiltLen can only be odd number")
     return(NULL)
   }
   # Get filenames from .merged.osw file and check if names are consistent between osw and mzML files.
-  filenames <- DIAlignR::getRunNames(dataPath, oswMerged, nameCutPattern)
+  filenames <- getRunNames(dataPath = dataPath, oswMerged = oswMerged, nameCutPattern = nameCutPattern, chrom_ext = chrom_ext)
   filenames <- filenames[filenames$runs %in% runs,]
-
+  
   # Get Chromatogram indices for each peptide in each run.
   oswFiles <- getOswFiles(dataPath, filenames, maxFdrQuery = maxFdrQuery, analyteFDR = 1.00,
-                         oswMerged = oswMerged, analytes = analytes, runType = runType,
-                         analyteInGroupLabel = analyteInGroupLabel, identifying = identifying, mzPntrs = mzPntrs)
-  refAnalytes <- DIAlignR:::getAnalytesName(oswFiles, commonAnalytes = FALSE)
+                          oswMerged = oswMerged, analytes = analytes, runType = runType,
+                          analyteInGroupLabel = analyteInGroupLabel)
+  refAnalytes <- getAnalytesName(oswFiles, commonAnalytes = FALSE)
   analytesFound <- intersect(analytes, refAnalytes)
   analytesNotFound <- setdiff(analytes, analytesFound)
   if(length(analytesNotFound)>0){
     message("Analytes ", paste(analytesNotFound, ", "), "not found.")
   }
-
+  
   ####################### Get XICs ##########################################
   runs <- filenames$runs
   names(runs) <- rownames(filenames)

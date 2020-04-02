@@ -15,6 +15,7 @@ getAlignObjs(
   identifying = FALSE,
   oswMerged = TRUE,
   nameCutPattern = "(.*)(/)(.*)",
+  chrom_ext = ".chrom.mzML",
   maxFdrQuery = 0.05,
   maxFdrLoess = 0.01,
   analyteFDR = 1,
@@ -58,6 +59,8 @@ getAlignObjs(
 \item{oswMerged}{(logical) TRUE for experiment-wide FDR and FALSE for run-specific FDR by pyprophet.}
 
 \item{nameCutPattern}{(string) regex expression to fetch mzML file name from RUN.FILENAME columns of osw files.}
+
+\item{chrom_ext}{(string) chromatoram file extension to expect}
 
 \item{maxFdrQuery}{(numeric) A numeric value between 0 and 1. It is used to filter features from osw file which have SCORE_MS2.QVALUE less than itself.}
 

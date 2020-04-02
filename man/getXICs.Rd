@@ -15,8 +15,8 @@ getXICs(
   runType = "DIA_proteomics",
   oswMerged = TRUE,
   nameCutPattern = "(.*)(/)(.*)",
+  chrom_ext = ".chrom.mzML",
   analyteInGroupLabel = FALSE,
-  identifying = FALSE,
   mzPntrs = NULL
 )
 }
