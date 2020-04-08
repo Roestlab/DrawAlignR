@@ -22,11 +22,11 @@ workingDirectory_Input <- function( input, output, global, values, session ) {
               message("[DrawAlignR::WorkingDirectoryInput] Working Directory button pressed. Resetting textbox\n")
               reset("WorkingDirectory")
             }
-            if ( input$WorkingDirectory!="" ) {
+            if ( input$WorkingDirectory!="" | input$WorkingDirectory!=global$datapath ) {
               # print("Using test working directory input")
               global$datapath <- normalizePath( input$WorkingDirectory )
               ## Get mapping of runs to filename
-              values$runs_filename_mapping <- getRunNames(global$datapath, oswMerged = TRUE, chrom_ext = ".chrom.mzML|.chrom.sqMass")
+              values$runs_filename_mapping <- getRunNames(dataPath = global$datapath, oswMerged = TRUE, chrom_ext = ".chrom.mzML|.chrom.sqMass")
               ## Search working directory for osw file, mzml files, pqpfiles
               subDirs <- normalizePath( list.dirs( path = global$datapath, full.names = T, recursive = F ) )
             } else {
@@ -84,14 +84,24 @@ workingDirectory_Input <- function( input, output, global, values, session ) {
                 
                 ## Load OSW file
                 use_ipf_score <- Score_IPF_Present( global$oswFile[[1]] )
-                tictoc::tic("Reading and Cacheing OSW File")
+                tictoc::tic()
                 ### TODO : Need to make sure that this is extracting the correct information from the osw file when using the ipf scores
                 osw_df <- mstools::getOSWData_( oswfile=global$oswFile[[1]], decoy_filter = TRUE, ms2_score = TRUE, ipf_score =  use_ipf_score)
                 m_score_filter_var <- ifelse( length(grep( "m_score|mss_m_score", colnames(osw_df), value = T))==2, "m_score", "ms2_m_score" )
                 osw_df %>%
                   dplyr::filter( !is.na(m_score_filter_var)) -> osw_df
                 values$osw_df <- osw_df
-                tictoc::toc()
+                exec_time <- tictoc::toc(quiet = TRUE)
+                message( sprintf("[DrawAlignR::workingDirectory_Input] Caching OSW Feature Scoring Data took %s seconds", round(exec_time$toc - exec_time$tic, 3) ))
+                
+                if ( input$ShowTransitionScores ){
+                  tictoc::tic()
+                  transition_dt <- mstools::getTransitionScores_( oswfile = in_osw, run_name = "", precursor_id = "", peptide_id = "")
+                  values$transition_dt <- transition_dt
+                  exec_time <- tictoc::toc(quiet = TRUE)
+                  message( sprintf("[DrawAlignR::workingDirectory_Input] Caching Transition Feature Scoring Data took %s seconds", round(exec_time$toc - exec_time$tic, 3) ))
+                }
+                
                 if (  is.null( values$lib_df ) ){
                   ## Get list of unique modified peptides
                   uni_peptide_list <- as.list(unique( osw_df$FullPeptideName ) )
@@ -127,7 +137,7 @@ workingDirectory_Input <- function( input, output, global, values, session ) {
                 }
                 global$libFile <- find_file
                 ## Read in library and Cache Library onto disk
-                tictoc::tic("Reading and Cacheing Library File")
+                tictoc::tic("Reading and Caching Library File")
                 lib_df <- mstools::getPepLibData_( global$libFile[[1]] )
                 values$lib_df <- lib_df
                 tictoc::toc()

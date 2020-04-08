@@ -122,7 +122,7 @@ getAlignObjs <- function(analytes, runs, dataPath = ".", alignType = "hybrid",
       
       ######### Get Precursors from the query and respectve chromatogram indices. ######
       oswFiles <- getOswFiles(dataPath, filenames, maxFdrQuery = maxFdrQuery, analyteFDR = analyteFDR,
-                              oswMerged = oswMerged, analytes = NULL, runType = runType,
+                              oswMerged = oswMerged, analytes = analytes, runType = runType,
                               analyteInGroupLabel = analyteInGroupLabel, identifying = identifying, mzPntrs = mzPntrs)
       
       # Report analytes that are not found

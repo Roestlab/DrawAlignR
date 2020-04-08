@@ -1,7 +1,7 @@
 Package: DrawAlignR
 Type: Package
 Title: Visualizes Aligned Ms2 Chromatograms
-Version: 1.0.0
+Version: 1.0.1
 Authors@R: c( person( "Justin", "Sing", email = "justincsing@gmail.com", role = c("cre") ),
               person("Arshia", "Mahmoodi", email = "arshia.mahmoodi@mail.utoronto.ca", role = c("aut"))
             )
@@ -29,6 +29,8 @@ Imports: shiny,
           ggplot2,
           gridExtra,
           ggrepel,
+	  ggpubr,
+	  plotly,
           latticeExtra,
           plotly,
           signal,

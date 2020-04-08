@@ -28,6 +28,7 @@ curateXICplot(
   transition_selection_list = NULL,
   show_n_transitions = NULL,
   show_transition_scores = FALSE,
+  transition_dt = NULL,
   annotate_best_pkgrp = TRUE,
   show_all_pkgrprnk = T,
   show_peak_info_tbl = F,

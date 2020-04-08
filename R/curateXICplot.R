@@ -69,6 +69,7 @@ curateXICplot <- function( pep,
                            transition_selection_list=NULL,
                            show_n_transitions=NULL,
                            show_transition_scores=FALSE,
+                           transition_dt=NULL,
                            annotate_best_pkgrp=TRUE,
                            show_all_pkgrprnk=T,
                            show_peak_info_tbl=F,
@@ -97,6 +98,7 @@ curateXICplot <- function( pep,
     Isoform_Target_Charge <- Charge_State
     
     m_score_filter_var <- ifelse( length(grep( "m_score|ms2_m_score", colnames(df_osw), value = T))==2, "m_score", "ms2_m_score" )
+    print( m_score_filter_var )
     df_osw %>%
       dplyr::filter( Sequence==pep ) %>%
       dplyr::filter( FullPeptideName==uni_mod ) %>%
@@ -135,8 +137,9 @@ curateXICplot <- function( pep,
     ## Get TRANSITION SCORES INFO TABLE  ##
     ##***********************************##
     if ( show_transition_scores ){
-      transition_dt <- mstools::getTransitionScores_( oswfile = in_osw, run_name = run_name, precursor_id = "", peptide_id = pep)
-      # transition_dt_test <- getTransitionScores_( oswfile = in_osw, run_name = "chludwig_K150309_007b_SW_1_6", precursor_id = "", peptide_id = pep)
+      if ( is.null(transition_dt) ){
+        transition_dt <- mstools::getTransitionScores_( oswfile = in_osw, run_name = "", precursor_id = "", peptide_id = "")
+      } else { transition_dt <- NULL }
     } else {
       transition_dt <- NULL
     }
@@ -267,7 +270,7 @@ curateXICplot <- function( pep,
     
   }, error=function(e){
     
-    MazamaCoreUtils::logger.error(crayon::red('There was an issue trying to process ', crayon::underline(pep), ' from run: '), crayon::underline(run), '\n', sep='')
+    MazamaCoreUtils::logger.error( paste(crayon::red('There was an issue trying to process ', crayon::underline(pep), ' from run: '), crayon::underline(run), '\n', sep='') )
     stop(e$message)
     
   })

@@ -26,13 +26,24 @@ oswFile_Input_Button <- function(  input, output, global, values, session  ) {
           global$mostRecentDir <- dirname( dirname( global$oswFile[[1]] ) )
           ## Load OSW file
           use_ipf_score <- Score_IPF_Present( global$oswFile[[1]] )
-          tictoc::tic("Reading and Cacheing OSW File")
+          tictoc::tic()
           osw_df <- mstools::getOSWData_( oswfile=global$oswFile[[1]], decoy_filter = TRUE, ms2_score = TRUE, ipf_score =  use_ipf_score)
           m_score_filter_var <- ifelse( length(grep( "m_score|mss_m_score", colnames(osw_df), value = T))==2, "m_score", "ms2_m_score" )
           osw_df %>%
             dplyr::filter( !is.na(m_score_filter_var)) -> osw_df
           values$osw_df <- osw_df
-          tictoc::toc()
+          exec_time <- tictoc::toc(quiet = TRUE)
+          message( sprintf("[DrawAlignR::oswFile_Input_Button] Caching OSW Feature Scoring Data took %s seconds", round(exec_time$toc - exec_time$tic, 3) ))
+          
+          ## Cache Transition Feature Scoring Information
+          if ( input$ShowTransitionScores ){
+            tictoc::tic()
+            transition_dt <- mstools::getTransitionScores_( oswfile = in_osw, run_name = "", precursor_id = "", peptide_id = "")
+            values$transition_dt <- transition_dt
+            exec_time <- tictoc::toc(quiet = TRUE)
+            message( sprintf("[DrawAlignR::oswFile_Input_Button] Caching Transition Feature Scoring Data took %s seconds", round(exec_time$toc - exec_time$tic, 3) ))
+          }
+          
           if ( dim(values$lib_df)[1]==0){
             ## Get list of unique modified peptides
             uni_peptide_list <- as.list(unique( osw_df$FullPeptideName ) )

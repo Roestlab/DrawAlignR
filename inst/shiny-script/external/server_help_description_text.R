@@ -35,10 +35,10 @@ server_help_description_text <- function( input, output, session ){
 
 # Alignment Settings Tab --------------------------------------------------
 
-  ## popover help text for 
-  addPopover(session = session, id = "runType_help", 
-             title = "Type of Experiment", 
-             content = paste0("<p>What type of experiment is your data? DIA proteomics?</p><p>If you have an alternative type of data acquisition scheme and would like support. Please submit a feature request at Roestlab/DrawAlignR, or submit a feature request at Roestlab/DIAlignR</p>"), trigger = 'click')  
+  # ## popover help text for 
+  # addPopover(session = session, id = "runType_help", 
+  #            title = "Type of Experiment", 
+  #            content = paste0("<p>What type of experiment is your data? DIA proteomics?</p><p>If you have an alternative type of data acquisition scheme and would like support. Please submit a feature request at Roestlab/DrawAlignR, or submit a feature request at Roestlab/DIAlignR</p>"), trigger = 'click')  
   ## popover help text for 
   addPopover(session = session, id = "analyteInGroupLabel_help", 
              title = "Group by Analyte ID", 

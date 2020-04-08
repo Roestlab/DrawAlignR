@@ -6,7 +6,7 @@
 #' @importFrom tictoc tic toc
 #' 
 #' @export
-getsqMassPntrs <- function( dataPath, runs, nameCutPattern = "(.*)(/)(.*)", chrom_ext=".chrom.sqMass"  ){
+getsqMassPntrs <- function( dataPath, runs, nameCutPattern = "(.*)(/)(.*)", chrom_ext=".chrom.sqMass", progress=FALSE  ){
   
   sql_query <- sprintf("SELECT
 CHROMATOGRAM.NATIVE_ID AS chromatogramId,
@@ -53,10 +53,14 @@ FROM CHROMATOGRAM
         DBI::dbDisconnect(conn)
         ## End timer
         exec_time <- tictoc::toc(quiet = T)
-        message(sprintf("\rCacheing sqMass for %s of %s runs: Elapsed Time = %s sec", run, length(filenames$runs), round(exec_time$toc - exec_time$tic, 3) ))
+        message(sprintf("\rCaching sqMass for %s of %s runs: Elapsed Time = %s sec", run, length(filenames$runs), round(exec_time$toc - exec_time$tic, 3) ))
+        ## Progress counter for visual pop-up
+        if( progress ){
+          incProgress(1/length(filenames$runs))
+        }
       },
       error = function(e){
-        message(sprintf("[getsqMassChromIdMapping] There was an issue cacheing %s, skipping...: %s\n", current_filename, e$message))
+        message(sprintf("[getsqMassChromIdMapping] There was an issue caching %s, skipping...: %s\n", current_filename, e$message))
       }
     ) # End tryCatch
   }

@@ -133,13 +133,16 @@ GeneralSettingsTab <- shiny::tabPanel( title = "General Settings",
                                        shiny::splitLayout(cellWidths = c("60%", "20%", "20%"),
                                                           #Select 1 or set of mzML files,
                                                           # shiny::checkboxInput(inputId = "Align", "Plot Aligned", value = FALSE, width = NULL),
-                                                          shinyWidgets::switchInput(inputId = 'Align', label = 'Align', value = FALSE, size = "small"),
+                                                          # shinyWidgets::switchInput(inputId = 'Align', label = 'Align', value = FALSE, size = "normal"),
+                                                          DrawAlignR::customswitchButton(inputId = "Align",
+                                                                       label = HTML("<div class='textboxed'><h4><b>Execute<br>Alignment</b></h4></div>"),
+                                                                       value = FALSE, col = "RG", type = "OO"),
                                                           ## refresh button
                                                           bsButton("refreshAlign", label = "", icon = icon("refresh"), size = "small"),
                                                           ## help button
                                                           bsButton("plotalign_help", label = "?", size = "small")
                                        ),
-                                       shiny::tags$style(type='text/css', "#Align { width:100%; margin-top: 0px;}"),
+                                       shiny::tags$style(type='text/css', "#Align { width:100%; margin-top: 0px; background-color:red; border: 2px solid #dd4b39;}"),
                                        shiny::tags$style(type='text/css', "#refreshAlign { width:100%; margin-top: 0px;}"),
                                        shiny::tags$style(type='text/css', "#plotalign_help { width:100%; margin-top: 0px;}"),
                                        
@@ -174,8 +177,9 @@ GeneralSettingsTab <- shiny::tabPanel( title = "General Settings",
                                                           bsButton("OriginalRTAnnotation_help", label = "?", size = "small")
                                        ),
                                        shiny::tags$style(type='text/css', "#OriginalRTAnnotation { width:100%; margin-top: 0px;}"),
-                                       shiny::tags$style(type='text/css', "#OriginalRTAnnotation_help { width:100%; margin-top: 0px;}")
+                                       shiny::tags$style(type='text/css', "#OriginalRTAnnotation_help { width:100%; margin-top: 0px;}"),
                                        
+                                       actionButton("copy", "Copy File")
                                        
 ) # End of GeneralSettingsTab
 
@@ -189,22 +193,23 @@ AlignmentSettingsTab <- shiny::tabPanel( title = "Alignment Settings",
                                          
                                          ## simMeasure
                                          shiny::splitLayout(cellWidths = c("80%", "20%"),
-                                                            shiny::selectizeInput('runType', 'Experiment Type', selected = 'DIA_Proteomics', choices = c('DIA_Proteomics', 'DIA_Proteomics_ipf', 'MRM_Proteomics', 'DIA_Metabolomics'), 
-                                                                                  options = list(
-                                                                                    valueField = 'runType',
-                                                                                    labelField = 'name',
-                                                                                    searchField = 'name',
-                                                                                    options = list( ),
-                                                                                    create = FALSE, 
-                                                                                    multiple = FALSE,
-                                                                                    selected = NULL
-                                                                                  )
-                                                            ),
-                                                            ## help button
-                                                            bsButton("runType_help", label = "?", size = "small")
+                                         shiny::selectizeInput('runType', 'Experiment Type', selected = 'DIA_Proteomics', choices = c('DIA_Proteomics', 'DIA_Proteomics_ipf', 'MRM_Proteomics', 'DIA_Metabolomics'), 
+                                                               options = list(
+                                                                 valueField = 'runType',
+                                                                 labelField = 'name',
+                                                                 searchField = 'name',
+                                                                 options = list( ),
+                                                                 create = FALSE, 
+                                                                 multiple = FALSE,
+                                                                 selected = NULL
+                                                               )
+                                         ),
+                                         ## help button
+                                         bsButton("runType_help", label = "?", size = "small")
                                          ),
                                          shiny::tags$style(type='text/css', "#runType { width:100%; margin-top: 0px;}"),
                                          shiny::tags$style(type='text/css', "#runType_help { width:100%; margin-top: 0px;}"),
+                                         shiny::tags$head(shiny::tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
                                          
                                          ## analyteInGroupLabel
                                          shiny::splitLayout(cellWidths = c("80%", "20%"),
@@ -476,7 +481,7 @@ PlottingSettingsTab <- shiny::tabPanel( title = "Plot Settings",
                                         shiny::textInput(inputId = "bIdent", label = "identifying b-ions", placeholder = "Enter values separated by a comma..."),                    
                                         
                                         ## ShowTransitionScores
-                                        shiny::checkboxInput('ShowTransitionScores', 'Show Transition Scores (hover tooltip)', value = FALSE),
+                                        shiny::checkboxInput('ShowTransitionScores', 'Show Transition Scores (hover tooltip)', value = TRUE),
                                         
                                         ## ShowAllPkGrps
                                         shiny::checkboxInput('ShowAllPkGrps', 'Show All Peak-Groups', value = FALSE),

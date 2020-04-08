@@ -53,15 +53,19 @@ source( "external/linkZoomEvent.R", local = TRUE )
 source( "external/cacheAlignmentPlots.R", local = TRUE )
 source( "external/drawAlignedPlots.R", local = TRUE )
 source( "external/clearPlots.R", local = TRUE )
-source( "external/withConsoleRedirect.R", local = TRUE )
+# source( "external/withConsoleRedirect.R", local = TRUE )
+# source( "external/customswitchButton.R", local = TRUE )
 
 # UI ----------------------------------------------------------------------
 
 ui <- fluidPage(
+  ## Set theme
+  theme = "button.css",
   
   useShinyjs(),  # Include shinyjs
   
-  titlePanel( title=div( img(src="DIAlignR-logo.jpg", width = 80, height = 80, align="top" ), ( HTML(sprintf("DrawAlignR <h6 style='display:inline'>Ver: %s</h6>", tryCatch(expr={ver<-packageVersion("DrawAlignR")}, error = function(e){ ver<-'0' }) )) ) ) ),
+  titlePanel( title=div( img(src="DIAlignR-logo.png", width = 80, height = 80, align="top" ), ( HTML(sprintf("DrawAlignR <h6 style='display:inline'>Ver: %s</h6>", tryCatch(expr={ver<-packageVersion("DrawAlignR")}, error = function(e){ ver<-'0' }) )) ) ),
+              windowTitle = HTML("<title>DrawAlignR</title> <link rel='icon' type='image/gif/png' href='DIAlignR-logo.png'>")),
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
@@ -92,7 +96,7 @@ ui <- fluidPage(
                             )
                   )
       ),
-      ## Cacheing Progress Bar
+      ## Caching Progress Bar
       plotOutput("bar") 
       
       # absolutePanel( id='log-pannel', draggable = TRUE,
@@ -116,7 +120,17 @@ ui <- fluidPage(
 # print(list.files( getwd(), full.names = T, recursive = T) )
 # lapply(list.files("./R/", full.names = T), function( source_file ) { message(sprintf("Loading Source File: %s\n", source_file)); source(source_file, local = TRUE) } )
 # unzoom_double_click <<- NULLi
+# TODO Use tools::file_ext(global$chromFile, exts=c("mzML", "mzML.gz", "chrom.mzML")) for getting files, this is more precise.
 server <- function(input, output, session) {
+  ## Copy logs for debugging
+  observeEvent(input$copy,{
+    destDir <- '/data/'
+    file_to_cp <- '/srv/shiny-server/DrawAlignR/inst/shiny-script/mstools-trace.log'
+    cat("Copying file to:", destDir,"\n")
+    result <- file.copy( file_to_cp,
+                         file.path(destDir, basename(file_to_cp)) )
+    cat("Done copying file to:", destDir,"/", basename(file_to_cp), "\n")
+  })
   
   # Server Help Annotations -------------------------------------------------
   
@@ -132,6 +146,8 @@ server <- function(input, output, session) {
     Experiments_to_Align = '',
     transition_selection_list = list(),
     lib_df = NULL,
+    osw_df = NULL,
+    transition_dt =NULL,
     reference_plotted = FALSE,
     drives = shinyFiles::getVolumes(),
     plots = list(),
@@ -149,6 +165,7 @@ server <- function(input, output, session) {
     mostRecentDir = getwd(), 
     foundChromFiles = list(mzml=list(), sqmass=list()), 
     chromTypes_available = "",
+    chrom_ext = "",
     plotly.autorange.x = T,
     plotly.autorange.y = T,
     link_zoom_range_current = list(),
@@ -226,7 +243,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Chromatogram File Cacheing Events ---------------------------------------
+  # Chromatogram File Caching Events ---------------------------------------
   
   ## If multiple chromatogram format types are found, check to see which fortmat user wants to use  
   observeEvent( {
@@ -244,7 +261,7 @@ server <- function(input, output, session) {
               
               ## Store chromatogram file run names
               # values$chromnames <- gsub("\\.chrom\\.mzML$|\\.chrom\\.sqMass$", "", input$ChromatogramFile$name)
-              values$chromnames <- gsub("\\.chrom\\.mzML$|\\.chrom\\.sqMass$", "", names(global$chromFile))
+              values$chromnames <- gsub("\\.chrom?\\.mzML$|\\.chrom?\\.sqMass$", "", names(global$chromFile))
               if ( !is.null(values$osw_df) | dim(values$osw_df)[1]>0 ){
                 values$osw_df %>%
                   dplyr::select( filename ) %>%
@@ -271,16 +288,17 @@ server <- function(input, output, session) {
               names(run_index_map) <- values$chromnames
               values$run_index_map <- run_index_map
               shiny::updateCheckboxGroupInput( session, inputId = "n_runs", choices = n_runs_index, selected = seq(1, length((values$chromnames))), inline = TRUE  )
-              
               ## Get File Extension Type
               # fileType <- gsub( '.*\\.', '', input$ChromatogramFile$name)
               fileType <- unique(gsub( ".*\\.", "", global$chromFile))
+              ## Store chromatogram extension
+              global$chrom_ext <- paste0(".", gsub("^.*?\\.","", global$chromFile ) )
               if ( tolower(fileType)=='mzml' | tolower(fileType)=='mzml.gz' ){
                 ##*******************************
                 ## Pre-Load mzML Files
                 ##*******************************
                 output$bar <- renderPlot({
-                  withProgress(message = sprintf('Cacheing %s mzML Chromatogram File(s)...', length(n_runs_index)),
+                  withProgress(message = sprintf('Caching %s mzML Chromatogram File(s)...', length(n_runs_index)),
                                detail = 'This might take a while for large chromatogram files...', value = 0, expr = {
                                  values$mzPntrs <- DrawAlignR::getmzPntrs( input, global, progress=TRUE  )
                                })
@@ -315,6 +333,8 @@ server <- function(input, output, session) {
               ## Get File Extension Type
               # fileType <- gsub( '.*\\.', '', input$ChromatogramFile$name)
               fileType <- unique(gsub( ".*\\.", "", global$chromFile))
+              ## Store chromatogram extension
+              global$chrom_ext <- paste0(".", gsub("^.*?\\.","", global$chromFile ) )
               if ( tolower(fileType)=='sqmass' ){
                 ##*******************************
                 ## Pre-Load sqMass Files
@@ -324,7 +344,7 @@ server <- function(input, output, session) {
                 runs <- filenames$runs
                 names(runs) <- rownames(filenames)
                 output$bar <- renderPlot({
-                  withProgress(message = sprintf('Cacheing %s mzML Chromatogram File(s)...', length(n_runs_index)),
+                  withProgress(message = sprintf('Caching %s mzML Chromatogram File(s)...', length(n_runs_index)),
                                detail = 'This might take a while for large chromatogram files...', value = 0, {
                                  values$mzPntrs <- DrawAlignR::getsqMassPntrs(dataPath=input$WorkingDirectory, runs)
                                })
@@ -476,7 +496,7 @@ server <- function(input, output, session) {
         
         path_plotname <- paste("pathplot_run_", run_index, sep="")
         message(sprintf("Creating Path Plot: %s\n", path_plotname))
-        plotlyOutput(path_plotname)
+        plotlyOutput(path_plotname, width = "120%", height = "1000px")
         
       })
       do.call(tagList, path_plot_output_list)
@@ -538,6 +558,8 @@ server <- function(input, output, session) {
       input$Mod
       input$Align 
       input$refreshAlign
+      input$Charge
+      input$Reference
       values$start_plotting
     }, {
       
@@ -599,6 +621,7 @@ server <- function(input, output, session) {
                                                                 transition_selection_list=values$transition_selection_list,
                                                                 show_n_transitions=input$nIdentifyingTransitions,
                                                                 show_transition_scores=input$ShowTransitionScores,
+                                                                transition_dt=values$transition_dt,
                                                                 show_all_pkgrprnk=input$ShowAllPkGrps,
                                                                 show_manual_annotation = manual_annotation_coordinates,
                                                                 show_peak_info_tbl=F,
@@ -746,7 +769,7 @@ server <- function(input, output, session) {
                                    # suppressWarnings(
                                    AlignObjOutput <- DrawAlignR::getAlignObjs(analytes = analytes, runs = runs, dataPath = dataPath, refRun = input$Reference, 
                                                                               analyteInGroupLabel = input$analyteInGroupLabel, identifying = input$identifying, 
-                                                                              oswMerged = input$oswMerged, nameCutPattern = input$nameCutPattern, chrom_ext=".chrom.mzML",
+                                                                              oswMerged = input$oswMerged, nameCutPattern = input$nameCutPattern, chrom_ext=global$chrom_ext,
                                                                               maxFdrQuery = input$maxFdrQuery, maxFdrLoess = input$maxFdrLoess, analyteFDR = input$analyteFDR, 
                                                                               spanvalue = input$spanvalue,  normalization = input$normalization, simMeasure = input$simMeasure,
                                                                               XICfilter = input$XICfilter, SgolayFiltOrd = input$SgolayFiltOrd, SgolayFiltLen = input$SgolayFiltLen,
@@ -762,7 +785,7 @@ server <- function(input, output, session) {
                                    cat( sprintf("Added %s to list of aligned objects.\n Total in list now: %s\n", current_experiment, paste(names( values$AlignObj_List), collapse=", ") ) )
                                  }, 
                                  error = function(e){
-                                   message(sprintf("[Alignment] There was the following error that occured during Alignment: %s\n", e$message))
+                                   message(sprintf("[DrawAlignR::app::doAlignment] There was the following error that occured during Alignment: %s\n", e$message))
                                    values$AlignObj_List[[current_experiment]] <<- e$message
                                  }
                                ) # End tryCatch

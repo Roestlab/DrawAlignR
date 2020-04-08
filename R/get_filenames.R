@@ -148,8 +148,8 @@ getRunNames <- function(dataPath=NULL, oswFiles=NULL, chromFiles=NULL, oswMerged
   # print(filenames$runs)
   # print("mzMLfiles")
   # print(mzMLfiles)
-  if(length(runs) != length(filenames$runs) & !is.null(mzMLfiles)){
-    warning(sprintf( "Following files did not have their counterpart in %s directory:\n%s", unique(dirname(names(mzMLfiles))), setdiff(filenames$runs, mzMLfiles) ))
+  if( length(runs) != length(filenames$runs) & !is.null(mzMLfiles) ){
+    warning( lapply(unique(dirname(names(mzMLfiles))), function( mzml_found_dir ){ sprintf( "\nFollowing files did not have their counterpart in %s directory:\n%s", mzml_found_dir, paste0(setdiff(filenames$runs, mzMLfiles), collapse = "\n") ) }) )
   }
   if(length(runs) == 0){
     message("Names in RUN table of osw files aren't matching to mzML filenames.")

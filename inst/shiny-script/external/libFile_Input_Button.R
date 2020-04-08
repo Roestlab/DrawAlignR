@@ -23,7 +23,7 @@ libFile_Input_Button <- function( input, output, global, values, session ) {
           ## Update global most recent directroy
           global$mostRecentDir <- dirname( dirname( global$libFile[[1]] ) )
           ## Read in library and Cache Library onto disk
-          tictoc::tic("Reading and Cacheing Library File")
+          tictoc::tic("Reading and Caching Library File")
           lib_df <- mstools::getPepLibData_( global$libFile[[1]] )
           values$lib_df <- lib_df
           tictoc::toc()
