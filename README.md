@@ -9,8 +9,7 @@ To install this package, follow these commands:
 ``` r
 ## Check if devtools is available, else install it and load it
 if(!require("devtools")) install.packages("devtools")
-library(devtools
-)
+library(devtools)
 ## Install BiocManager, BiocInstaller, zlibbioc, Rhdf5lib and mzR if not installed.
 ## *Note*: If you're using windows, you may have to restart your r session after each Bioconductor package install.  
 ## There may be times when BiocManager or one of the packages installed from BiocManager is not recognized as being installed until refreshing R's lib list.
