@@ -53,14 +53,17 @@ FROM CHROMATOGRAM
         DBI::dbDisconnect(conn)
         ## End timer
         exec_time <- tictoc::toc(quiet = T)
-        message(sprintf("\rCaching sqMass for %s of %s runs: Elapsed Time = %s sec", run, length(filenames$runs), round(exec_time$toc - exec_time$tic, 3) ))
+        message(sprintf("[DrawAlignR::getsqMassPntrs] Caching sqMass for %s of %s runs: Elapsed Time = %s sec", run, length(filenames$runs), round(exec_time$toc - exec_time$tic, 3) ))
         ## Progress counter for visual pop-up
         if( progress ){
           incProgress(1/length(filenames$runs))
         }
       },
       error = function(e){
-        message(sprintf("[getsqMassChromIdMapping] There was an issue caching %s, skipping...: %s\n", current_filename, e$message))
+        message(sprintf("[DrawAlignR::getsqMassPntrs] There was an issue caching %s, skipping...: %s\n", current_filename, e$message))
+        mzPntrs[[run]] <- list()
+        mzPntrs[[run]]$mz <- NULL
+        mzPntrs[[run]]$chromHead <- NULL
       }
     ) # End tryCatch
   }

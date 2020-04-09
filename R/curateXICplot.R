@@ -98,7 +98,6 @@ curateXICplot <- function( pep,
     Isoform_Target_Charge <- Charge_State
     
     m_score_filter_var <- ifelse( length(grep( "m_score|ms2_m_score", colnames(df_osw), value = T))==2, "m_score", "ms2_m_score" )
-    print( m_score_filter_var )
     df_osw %>%
       dplyr::filter( Sequence==pep ) %>%
       dplyr::filter( FullPeptideName==uni_mod ) %>%

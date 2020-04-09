@@ -80,7 +80,7 @@ RUN R -e  "install.packages('devtools')"
 #RUN R -e "install.packages('parallel')"
 #RUN R -e "devtools::install_github('singjc/mstools', force=T, upgrade='never')"
 #RUN R -e "devtools::install_github('shubham1637/DIAlignR', upgrade='never')"
-RUN R -e "library(devtools); devtools::install_github('singjc/DrawAlignR', upgrade='default', force=T, build_opts = c('--no-build-vignettes'))"
+RUN R -e "library(devtools); devtools::install_github('singjc/DrawAlignR', force=T, build_opts = c('--no-build-vignettes'))"
 
 # copy the app to the image
 #COPY ./DrawAlignR.Rproj /srv/shiny-server/

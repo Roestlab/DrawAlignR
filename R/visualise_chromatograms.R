@@ -86,14 +86,20 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
   ###################### Plot unaligned chromatogram ######################################
   
   ## Get transition information from the osw file
-  transition_table <- mstools::getPepLibData_( global$oswFile[[1]], peptide_id = gsub("\\([a-zA-Z0-9:.]+\\)", '', input$Mod) )
-  values$transition_table <- transition_table
+  values$lib_df %>%
+    dplyr::filter( UNMODIFIED_SEQUENCE==gsub("\\([a-zA-Z0-9:.]+\\)", '', input$Mod) ) -> transition_table
+  
+  ## Get OSW data
+  m_score_filter_var <- ifelse( length(grep( "m_score|ms2_m_score", colnames(values$osw_df), value = T))==2, "m_score", "ms2_m_score" )
+  values$osw_df %>%
+    dplyr::filter( Sequence==gsub("\\([a-zA-Z0-9:.]+\\)", '', input$Mod) ) %>%
+    dplyr::filter( FullPeptideName==input$Mod ) %>%
+    dplyr::filter( !is.na( !!rlang::sym(m_score_filter_var) ) ) %>%
+    dplyr::filter( Charge==input$Charge ) -> tmp_osw_df
   
   ##**************************
   ## REFERENCE Chromatogram 
   ##**************************
-  
-  message("Plotting Reference Chromatogram")
   
   XICs.ref.rename <- XICs.ref
   
@@ -137,6 +143,7 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
                         transition_type='none', 
                         max_Int = max_Int, 
                         in_osw = global$oswFile[[1]], 
+                        df_osw = subset(tmp_osw_df, grepl(refRun, filename)),
                         SCORE_IPF = Score_IPF_Present( global$oswFile[[1]] ),
                         doFacetZoom=F, 
                         top_trans_mod_list=NULL, 
@@ -221,8 +228,6 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
   ## Aligned Experiment Chromatogram 
   ##***********************************
   
-  message("Plotting Aligned Chromatogram")
-  
   XICs.eXp.aligned <- getSingleAlignedChrom(XIC_group = XICs.eXp, idx = AlignedIndices[,"indexAligned.eXp"], t.ref)
   
   ## Rename list using transition ids
@@ -236,7 +241,6 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
   }
   
   g <- ggplot2::ggplot()
-  invisible( capture.output(suppressWarnings(
     g <-  mstools::getXIC( graphic_obj = g, 
                            df_lib = transition_table, 
                            mod = input$Mod, 
@@ -253,14 +257,12 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
                            top_trans_mod_list=NULL, 
                            show_n_transitions=input$nIdentifyingTransitions,
                            transition_dt=NULL )
-  )))
   max_Int <- g$max_Int
   g <- g$graphic_obj
   
   ##*********************************
   ##     ADD OSW RESULTS INFO     
   ##*********************************
-  invisible( capture.output(suppressWarnings(
     g <-  mstools::getXIC( graphic_obj = g, 
                            df_lib = transition_table, 
                            mod = input$Mod, 
@@ -269,6 +271,7 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
                            transition_type='none', 
                            max_Int = max_Int, 
                            in_osw = global$oswFile[[1]], 
+                           df_osw = subset(tmp_osw_df, grepl(eXpRun, filename)),
                            SCORE_IPF = Score_IPF_Present( global$oswFile[[1]] ),
                            annotate_best_pkgrp=F,
                            doFacetZoom=F, 
@@ -278,7 +281,6 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
                            show_peak_info_tbl=F,
                            FacetFcnCall=NULL, 
                            show_legend = T  )
-  )))
   max_Int <- g$max_Int
   g <- g$graphic_obj
   
@@ -308,26 +310,10 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
     use_ipf_score <- Score_IPF_Present( global$oswFile[[1]] )
     
     ## Experiment
-    run_name <- gsub('_osw_chrom[.]sqMass$|[.]chrom.mzML$|[.]chrom.sqMass$', '', basename(global$chromFile[ grepl(eXpRun, names(global$chromFile)) ][[1]]))
-    
-    invisible( capture.output(suppressWarnings(
-      osw_dt <- mstools::getOSWData_( oswfile = global$oswFile[[1]], run_name = run_name, mod_peptide_id = c(input$Mod, mstools::unimodTocodename(input$Mod) ), peak_group_rank_filter = T, ms2_score = T, ipf_score = use_ipf_score )
-    )))
+    subset(tmp_osw_df, grepl(eXpRun, filename)) -> osw_dt
     
     osw_dt %>%
       dplyr::filter( Charge==input$Charge ) -> osw_dt
-    
-    ## Remove rows with NULL value in ipf_pep
-    if ("ipf_pep" %in% colnames(osw_dt)) {
-      if (!is.null(unlist(osw_dt$ipf_pep))) {
-        osw_dt <- osw_dt %>% dplyr::filter(!is.null(ipf_pep)) %>% 
-          dplyr::filter(!is.nan(ipf_pep))
-      }
-    }
-    
-    ## Remove rows that are not current peptide
-    osw_dt %>%
-      dplyr::filter( FullPeptideName == input$Mod ) -> osw_dt
     
     ## Get data for the best peak as defined by the feature with the lowest IPF posterior error probability 
     if ("m_score" %in% colnames(osw_dt)) {
@@ -342,26 +328,10 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
     }
     
     ## Reference
-    run_name <- gsub('_osw_chrom[.]sqMass$|[.]chrom.mzML$|[.]chrom.sqMass$', '', basename(global$chromFile[ grepl(refRun, names(global$chromFile)) ][[1]]))
-    
-    invisible( capture.output(suppressWarnings(
-      osw_dt_ref <- mstools::getOSWData_( oswfile = global$oswFile[[1]], run_name = run_name, mod_peptide_id = c(input$Mod, mstools::unimodTocodename(input$Mod) ), peak_group_rank_filter = T, ms2_score = T, ipf_score = use_ipf_score )
-    )))
+    osw_dt_ref <- subset(tmp_osw_df, grepl(refRun, filename))
     
     osw_dt_ref %>%
       dplyr::filter( Charge==input$Charge ) -> osw_dt_ref
-    
-    ## Remove rows with NULL value in ipf_pep
-    if ("ipf_pep" %in% colnames(osw_dt)) {
-      if (!is.null(unlist(osw_dt$ipf_pep))) {
-        osw_dt <- osw_dt %>% dplyr::filter(!is.null(ipf_pep)) %>% 
-          dplyr::filter(!is.nan(ipf_pep))
-      }
-    }
-    
-    ## Remove rows that are not current peptide
-    osw_dt %>%
-      dplyr::filter( FullPeptideName == input$Mod ) -> osw_dt
     
     # ## Get data for the best peak as defined by the feature with the lowest IPF posterior error probability 
     # if ("m_score" %in% colnames(osw_dt)) {
@@ -441,6 +411,7 @@ getAlignedFigs <- function(AlignObj, refRun, eXpRun,  XICs.ref, XICs.eXp, refPea
 #' @export
 plotAlignedAnalytes <- function(AlignObjOutput, plotType = "All", DrawAlignR = FALSE,
                                 annotatePeak = FALSE, annotateOrgPeak = FALSE, saveFigs = FALSE, global = NULL, values = NULL, input = NULL){
+  
   if((length(AlignObjOutput) > 1) | saveFigs){
     grDevices::pdf("AlignedAnalytes.pdf")
   }
@@ -456,11 +427,15 @@ plotAlignedAnalytes <- function(AlignObjOutput, plotType = "All", DrawAlignR = F
     refRun <- names(AlignObjOutput[[i]])[2]
     eXpRun <- names(AlignObjOutput[[i]])[3]
     
+    tictoc::tic()
     figs <- getAlignedFigs(AlignObj, refRun, eXpRun, XICs.ref, XICs.eXp, refPeakLabel, annotatePeak, annotateOrgPeak, global, values, input)
+    exec_time <- tictoc::toc(quiet = TRUE)
+    message( sprintf("[DrawAlignR::plotAlignedAnalytes::getAlignedFigs] Generating reference chromatogram and aligned experiment chomatogram took %s seconds", round(exec_time$toc - exec_time$tic, 3) ))
     
     if(DrawAlignR){
-      cat("Succesfully drew ref, exp and exp aligned figs\n")
-      return(figs)}
+      message("Succesfully drew ref, and exp aligned figs\n")
+      return(figs)
+      }
     
     if(plotType == "onlyAligned"){
       grid.arrange(figs[["prefU"]], figs[["peXpA"]], nrow=2, ncol=1,
@@ -507,7 +482,8 @@ plotAlignedAnalytes <- function(AlignObjOutput, plotType = "All", DrawAlignR = F
 #' @importFrom ggpubr clean_theme rotate
 #' @export
 plotAlignmentPath <- function(AlignObjOutput, title=NULL){
-  message(sprintf("[DrawAlignR::plotAlignmentPath] Generating alignment path plot for %s.\n", title))
+  tictoc::tic()
+  
   Alignobj <- AlignObjOutput[[1]][[1]]
   XICs.ref <- AlignObjOutput[[1]][[2]]
   XICs.eXp <- AlignObjOutput[[1]][[3]]
@@ -551,8 +527,6 @@ plotAlignmentPath <- function(AlignObjOutput, title=NULL){
                      legend.position = "none" )
     plot_subtitle <- "Algorithm was not able to find a path.."
   }
-  
-  # plot_path
   
   p0 <- plotly::ggplotly(plot_path, dynamicTicks = T)  %>% layout(showlegend = FALSE)
   
@@ -602,6 +576,10 @@ plotAlignmentPath <- function(AlignObjOutput, title=NULL){
                                        '<sup>',
                                        plot_subtitle,
                                        '</sup>')))
+  
+  exec_time <- tictoc::toc(quiet = TRUE)
+  message( sprintf("[DrawAlignR::plotAlignmentPath] Generating alignment path plot for %s took %s seconds.\n", title, round(exec_time$toc - exec_time$tic, 3) ))
+  
   
   return( alignment_path_plot )
 }

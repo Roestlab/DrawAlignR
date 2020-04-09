@@ -318,10 +318,26 @@ server <- function(input, output, session) {
               ## Store chromatogram file run names
               # values$chromnames <- gsub("\\.chrom\\.mzML$|\\.chrom\\.sqMass$", "", input$ChromatogramFile$name)
               values$chromnames <- gsub("\\.chrom\\.mzML$|\\.chrom\\.sqMass$", "", names(global$chromFile))
+              if ( !is.null(values$osw_df) | dim(values$osw_df)[1]>0 ){
+                values$osw_df %>%
+                  dplyr::select( filename ) %>%
+                  dplyr::group_by( filename ) %>%
+                  dplyr::add_count() %>%
+                  unique() %>%
+                  dplyr::ungroup() %>%
+                  dplyr::filter( n == max(n) ) %>%
+                  dplyr::select( filename ) %>%
+                  as.character() %>%
+                  basename() %>%
+                  strsplit("\\.") %>% unlist() %>% dplyr::nth(1) -> run_with_most_features
+              } else {
+                run_with_most_features <- values$chromnames[1]
+              }
+              
               ## Update Reference list
-              updateSelectizeInput( session, inputId = "Reference", choices = as.list(values$chromnames) )
+              updateSelectizeInput( session, inputId = "Reference", choices = as.list(values$chromnames), selected = as.list(run_with_most_features) )
               ## Update Experiment list with first entry removed
-              updateSelectizeInput( session, inputId = "Experiment", choices = as.list(values$chromnames[-1]), selected = as.list(values$chromnames[-1])  )
+              updateSelectizeInput( session, inputId = "Experiment", choices = as.list(values$chromnames[-(match(run_with_most_features, values$chromname))]), selected = as.list(values$chromnames[-(match(run_with_most_features, values$chromname))]) )
               ## Update n chroms input
               n_runs_index <- c(seq(1, length(values$chromnames)))
               names(n_runs_index) <-  paste( "Run ", seq(1, length((values$chromnames))), sep='')
@@ -764,7 +780,7 @@ server <- function(input, output, session) {
                                    dataPath <- input$WorkingDirectory
                                    analytes <- paste( input$Mod, "_", toString(input$Charge), sep="") 
                                    runs <- c(input$Reference, current_experiment)
-                                   cat( sprintf( "analytes: %s\nReference: %s\nExperiment: %s\n", analytes, input$Reference, current_experiment))
+                                   # cat( sprintf( "analytes: %s\nReference: %s\nExperiment: %s\n", analytes, input$Reference, current_experiment))
                                    
                                    # suppressWarnings(
                                    AlignObjOutput <- DrawAlignR::getAlignObjs(analytes = analytes, runs = runs, dataPath = dataPath, refRun = input$Reference, 

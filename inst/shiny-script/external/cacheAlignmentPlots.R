@@ -23,7 +23,7 @@ cacheAlignmentPlots <- function( input, output, global, values, session ){
                      tryCatch(
                        expr = { 
                          message( sprintf( "Class of AlignObj for run %s is %s with length %s\n", current_experiment, class(values$AlignObj_List[[current_experiment]]), length(values$AlignObj_List[[current_experiment]]) ))
-                         # print( names(values$AlignObj_List[[current_experiment]]) )
+
                          ## Generate Plot
                          if ( class(values$AlignObj_List[[current_experiment]])!= "character" & length(values$AlignObj_List[[current_experiment]]) > 0 ){
                            message(sprintf("Generating Aligned Chromatogram from Current Exp: %s of %s with run_idx %s and plotname  %s\n", current_experiment, length(input$Experiment), run_index, plotname ))
@@ -106,8 +106,7 @@ cacheAlignmentPlots <- function( input, output, global, values, session ){
                              )
                              return( list(alignedChromsPlot=alignedChromsPlot, append_error_title=append_error_title) )
                            })
-                           # print("HERE")
-                           # print( names(alignedChromsPlot) )
+
                            
                            ## Store Aligned Experiment Plot
                            pt1 <- plotly::ggplotly( (alignedChromsPlot_errorhandle$alignedChromsPlot$peXpA), tooltip = c("x", "y", "text"), dynamicTicks = T) %>%
@@ -139,14 +138,7 @@ cacheAlignmentPlots <- function( input, output, global, values, session ){
                            
                            ## Get Alignment Path Plot
                            alignmentPathPlot <- plotAlignmentPath( AlignObjOutput = values$AlignObj_List[[current_experiment]], title = sprintf("%s - %s Aligned to %s", input$Mod, current_experiment, input$Reference) )
-                           # suppressWarnings(
-                           #   pt3 <- plotly::ggplotly( (alignmentPathPlot), tooltip = c("all"), dynamicTicks = T) %>%
-                           #     layout(title = list(text = paste0( paste0(alignmentPathPlot$labels$title),
-                           #                                        '<br>',
-                           #                                        '<sup>',
-                           #                                        gsub('\\\n', ' | ', alignmentPathPlot$labels$subtitle),
-                           #                                        '</sup>')))
-                           # )
+
                            pt3 <- alignmentPathPlot
                            ## Store plot for alignment path plot
                            values$alignmentPathPlot[[path_plotname]] <- pt3
@@ -180,7 +172,7 @@ cacheAlignmentPlots <- function( input, output, global, values, session ){
                            naked_peptide <-  gsub( paste(gsub('\\)','\\\\)',gsub('\\(','\\\\(',modification_labels)), collapse = '|'), '', peptide )
                            manual_annotation_coordinates <- NULL
                            
-                           # cat( sprintf("chrom: %s\nosw: %s\nlib: %s\n", chrom_input, osw_input, global$libFile))
+
                            out.plot.h <- curateXICplot( pep=naked_peptide, 
                                                         uni_mod=peptide,
                                                         in_sqMass=chrom_input,  df_lib=values$lib_df, in_osw=osw_input, df_osw=values$osw_df,
@@ -221,7 +213,7 @@ cacheAlignmentPlots <- function( input, output, global, values, session ){
                            naked_peptide <-  gsub( paste(gsub('\\)','\\\\)',gsub('\\(','\\\\(',modification_labels)), collapse = '|'), '', peptide )
                            manual_annotation_coordinates <- NULL
                            
-                           # cat( sprintf("chrom: %s\nosw: %s\nlib: %s\n", chrom_input, osw_input, global$libFile))
+
                            out.plot.h <- curateXICplot( pep=naked_peptide, 
                                                         uni_mod=peptide,
                                                         in_sqMass=chrom_input,  df_lib=values$lib_df, in_osw=osw_input, df_osw=values$osw_df,

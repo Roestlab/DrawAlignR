@@ -35,7 +35,7 @@ getmzPntrs <- function( input, global, progress=FALSE  ){
         mzPntrs[[run]]$chromHead <- chromHead
         ## End timer
         exec_time <- tictoc::toc(quiet = T)
-        message(sprintf("Caching mzML for %s (%s) of %s runs: Elapsed Time = %s sec", run, current_filename, length(filenames$runs), round(exec_time$toc - exec_time$tic, 3) )) 
+        message(sprintf("[DrawAlignR::getmzPntrs] Caching mzML for %s (%s) of %s runs: Elapsed Time = %s sec", run, current_filename, length(filenames$runs), round(exec_time$toc - exec_time$tic, 3) )) 
         ## Progress counter for visual pop-up
         if( progress ){
           incProgress(1/length(filenames$runs))
@@ -43,7 +43,7 @@ getmzPntrs <- function( input, global, progress=FALSE  ){
         
       },
       error = function(e){
-        message(sprintf("[getmzPntrs] There was an issue caching %s, skipping...:\nThe corresponding chromatogram file (%s) was most likely not in data directory. The last traceback call was: %s\n", current_filename, current_filename, e$message))
+        message(sprintf("[DrawAlignR::getmzPntrs] There was an issue caching %s, skipping...:\nThe corresponding chromatogram file (%s) was most likely not in data directory. The last traceback call was: %s\n", current_filename, current_filename, e$message))
         mzPntrs[[run]] <- list()
         mzPntrs[[run]]$mz <- NULL
         mzPntrs[[run]]$chromHead <- NULL
